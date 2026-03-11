@@ -1399,84 +1399,7 @@
     <!-- ═══════════════════════════════════════════
      SLIDE 2 — THE PROBLEM
 ═══════════════════════════════════════════ -->
-    <section class="slide" id="s3">
-        <div class="wrap">
-            <p class="eyebrow fadeup">The Problem Without MERGE</p>
-            <h2 class="fadeup">Multiple Queries,<br><span class="hi">One Problem.</span></h2>
-            <div class="divider fadeup"></div>
-            <p class="lead fadeup">To synchronize employee data without MERGE, you'd need <strong>three separate
-                    queries</strong> — increasing complexity, error surface, and maintenance burden.</p>
 
-            <div class="vs-grid fadeup" style="margin-bottom:2rem">
-                <div class="vs-box bad">
-                    <h4>WITHOUT MERGE — 3 queries</h4>
-                    <ul>
-                        <li>Separate UPDATE statement for existing employees</li>
-                        <li>Separate INSERT statement for new employees</li>
-                        <li>Separate DELETE statement for removed employees</li>
-                        <li>Multiple database round-trips</li>
-                        <li>Complex manual transaction handling</li>
-                        <li>Race condition risk between statements</li>
-                        <li>Hard to read &amp; maintain</li>
-                    </ul>
-                </div>
-                <div class="vs-sep">VS</div>
-                <div class="vs-box good">
-                    <h4>WITH MERGE — 1 statement</h4>
-                    <ul>
-                        <li>Single atomic MERGE statement</li>
-                        <li>All operations in one database pass</li>
-                        <li>Built-in transactional integrity</li>
-                        <li>Clear, readable WHEN clauses</li>
-                        <li>No race conditions between operations</li>
-                        <li>Easy to audit &amp; debug</li>
-                        <li>Less code, fewer bugs</li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="code-wrap fadeup">
-                <div class="code-bar">
-                    <div class="code-dots">
-                        <div class="cd r"></div>
-                        <div class="cd y"></div>
-                        <div class="cd g"></div>
-                    </div>
-                    <span class="code-fname">without_merge.sql — ❌ Old approach</span>
-                </div>
-                <div class="code-body">
-                    <pre><span class="cmt">-- ❌ Step 1: Update existing employees</span>
-<span class="kw">UPDATE</span> <span class="id">Empolyes</span>
-<span class="kw">SET</span>    <span class="id">EmpName</span>        <span class="op">=</span> <span class="id">u</span><span class="op">.</span><span class="id">EmpName</span>,
-       <span class="id">EmpPhoneNumber</span> <span class="op">=</span> <span class="id">u</span><span class="op">.</span><span class="id">EmpPhoneNumber</span>,
-       <span class="id">EmpSalary</span>      <span class="op">=</span> <span class="id">u</span><span class="op">.</span><span class="id">EmpSalary</span>
-<span class="kw">FROM</span>   <span class="id">Empolyes</span> <span class="id">e</span>
-<span class="kw">INNER JOIN</span> <span class="id">UpdateEmpolyes</span> <span class="id">u</span> <span class="kw">ON</span> <span class="id">e</span><span class="op">.</span><span class="id">NationalId</span> <span class="op">=</span> <span class="id">u</span><span class="op">.</span><span class="id">NationalId</span><span class="op">;</span>
-
-<span class="cmt">-- ❌ Step 2: Insert new employees</span>
-<span class="kw">INSERT INTO</span> <span class="id">Empolyes</span> (<span class="id">NationalId</span>, <span class="id">EmpName</span>, <span class="id">EmpPhoneNumber</span>, <span class="id">EmpSalary</span>)
-<span class="kw">SELECT</span> <span class="id">u</span><span class="op">.</span><span class="id">NationalId</span>, <span class="id">u</span><span class="op">.</span><span class="id">EmpName</span>, <span class="id">u</span><span class="op">.</span><span class="id">EmpPhoneNumber</span>, <span class="id">u</span><span class="op">.</span><span class="id">EmpSalary</span>
-<span class="kw">FROM</span>   <span class="id">UpdateEmpolyes</span> <span class="id">u</span>
-<span class="kw">WHERE NOT EXISTS</span> (
-    <span class="kw">SELECT</span> <span class="num">1</span> <span class="kw">FROM</span> <span class="id">Empolyes</span> <span class="id">e</span> <span class="kw">WHERE</span> <span class="id">e</span><span class="op">.</span><span class="id">NationalId</span> <span class="op">=</span> <span class="id">u</span><span class="op">.</span><span class="id">NationalId</span>
-)<span class="op">;</span>
-
-<span class="cmt">-- ❌ Step 3: Delete removed employees</span>
-<span class="kw">DELETE</span> <span class="id">e</span>
-<span class="kw">FROM</span>   <span class="id">Empolyes</span> <span class="id">e</span>
-<span class="kw">WHERE NOT EXISTS</span> (
-    <span class="kw">SELECT</span> <span class="num">1</span> <span class="kw">FROM</span> <span class="id">UpdateEmpolyes</span> <span class="id">u</span> <span class="kw">WHERE</span> <span class="id">u</span><span class="op">.</span><span class="id">NationalId</span> <span class="op">=</span> <span class="id">e</span><span class="op">.</span><span class="id">NationalId</span>
-)<span class="op">;</span></pre>
-                </div>
-            </div>
-        </div>
-        <div class="s-num">02 / 09</div>
-    </section>
-
-
-    <!-- ═══════════════════════════════════════════
-     SLIDE 3 — WHAT IS MERGE
-═══════════════════════════════════════════ -->
     <section class="slide" id="s2">
         <div class="wrap">
             <p class="eyebrow fadeup">What is MERGE</p>
@@ -1523,12 +1446,15 @@
                 </div>
             </div>
         </div>
-        <div class="s-num">03 / 09</div>
+        <div class="s-num">02 / 09</div>
     </section>
 
+
+
     <!-- ═══════════════════════════════════════════
-     SLIDE 4 — THE PROVIDED EXAMPLE
+     SLIDE 3 — WHAT IS MERGE
 ═══════════════════════════════════════════ -->
+
     <section class="slide" id="s4">
         <div class="wrap">
             <p class="eyebrow fadeup">The Provided Example</p>
@@ -1692,8 +1618,88 @@
                 </div>
             </div>
         </div>
+        <div class="s-num">03 / 09</div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+     SLIDE 4 — THE PROVIDED EXAMPLE
+═══════════════════════════════════════════ -->
+
+    <section class="slide" id="s3">
+        <div class="wrap">
+            <p class="eyebrow fadeup">The Problem Without MERGE</p>
+            <h2 class="fadeup">Multiple Queries,<br><span class="hi">One Problem.</span></h2>
+            <div class="divider fadeup"></div>
+            <p class="lead fadeup">To synchronize employee data without MERGE, you'd need <strong>three separate
+                    queries</strong> — increasing complexity, error surface, and maintenance burden.</p>
+
+            <div class="vs-grid fadeup" style="margin-bottom:2rem">
+                <div class="vs-box bad">
+                    <h4>WITHOUT MERGE — 3 queries</h4>
+                    <ul>
+                        <li>Separate UPDATE statement for existing employees</li>
+                        <li>Separate INSERT statement for new employees</li>
+                        <li>Separate DELETE statement for removed employees</li>
+                        <li>Multiple database round-trips</li>
+                        <li>Complex manual transaction handling</li>
+                        <li>Race condition risk between statements</li>
+                        <li>Hard to read &amp; maintain</li>
+                    </ul>
+                </div>
+                <div class="vs-sep">VS</div>
+                <div class="vs-box good">
+                    <h4>WITH MERGE — 1 statement</h4>
+                    <ul>
+                        <li>Single atomic MERGE statement</li>
+                        <li>All operations in one database pass</li>
+                        <li>Built-in transactional integrity</li>
+                        <li>Clear, readable WHEN clauses</li>
+                        <li>No race conditions between operations</li>
+                        <li>Easy to audit &amp; debug</li>
+                        <li>Less code, fewer bugs</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="code-wrap fadeup">
+                <div class="code-bar">
+                    <div class="code-dots">
+                        <div class="cd r"></div>
+                        <div class="cd y"></div>
+                        <div class="cd g"></div>
+                    </div>
+                    <span class="code-fname">without_merge.sql — ❌ Old approach</span>
+                </div>
+                <div class="code-body">
+                    <pre><span class="cmt">-- ❌ Step 1: Update existing employees</span>
+<span class="kw">UPDATE</span> <span class="id">Empolyes</span>
+<span class="kw">SET</span>    <span class="id">EmpName</span>        <span class="op">=</span> <span class="id">u</span><span class="op">.</span><span class="id">EmpName</span>,
+       <span class="id">EmpPhoneNumber</span> <span class="op">=</span> <span class="id">u</span><span class="op">.</span><span class="id">EmpPhoneNumber</span>,
+       <span class="id">EmpSalary</span>      <span class="op">=</span> <span class="id">u</span><span class="op">.</span><span class="id">EmpSalary</span>
+<span class="kw">FROM</span>   <span class="id">Empolyes</span> <span class="id">e</span>
+<span class="kw">INNER JOIN</span> <span class="id">UpdateEmpolyes</span> <span class="id">u</span> <span class="kw">ON</span> <span class="id">e</span><span class="op">.</span><span class="id">NationalId</span> <span class="op">=</span> <span class="id">u</span><span class="op">.</span><span class="id">NationalId</span><span class="op">;</span>
+
+<span class="cmt">-- ❌ Step 2: Insert new employees</span>
+<span class="kw">INSERT INTO</span> <span class="id">Empolyes</span> (<span class="id">NationalId</span>, <span class="id">EmpName</span>, <span class="id">EmpPhoneNumber</span>, <span class="id">EmpSalary</span>)
+<span class="kw">SELECT</span> <span class="id">u</span><span class="op">.</span><span class="id">NationalId</span>, <span class="id">u</span><span class="op">.</span><span class="id">EmpName</span>, <span class="id">u</span><span class="op">.</span><span class="id">EmpPhoneNumber</span>, <span class="id">u</span><span class="op">.</span><span class="id">EmpSalary</span>
+<span class="kw">FROM</span>   <span class="id">UpdateEmpolyes</span> <span class="id">u</span>
+<span class="kw">WHERE NOT EXISTS</span> (
+    <span class="kw">SELECT</span> <span class="num">1</span> <span class="kw">FROM</span> <span class="id">Empolyes</span> <span class="id">e</span> <span class="kw">WHERE</span> <span class="id">e</span><span class="op">.</span><span class="id">NationalId</span> <span class="op">=</span> <span class="id">u</span><span class="op">.</span><span class="id">NationalId</span>
+)<span class="op">;</span>
+
+<span class="cmt">-- ❌ Step 3: Delete removed employees</span>
+<span class="kw">DELETE</span> <span class="id">e</span>
+<span class="kw">FROM</span>   <span class="id">Empolyes</span> <span class="id">e</span>
+<span class="kw">WHERE NOT EXISTS</span> (
+    <span class="kw">SELECT</span> <span class="num">1</span> <span class="kw">FROM</span> <span class="id">UpdateEmpolyes</span> <span class="id">u</span> <span class="kw">WHERE</span> <span class="id">u</span><span class="op">.</span><span class="id">NationalId</span> <span class="op">=</span> <span class="id">e</span><span class="op">.</span><span class="id">NationalId</span>
+)<span class="op">;</span></pre>
+                </div>
+            </div>
+        </div>
         <div class="s-num">04 / 09</div>
     </section>
+
+
 
     <!-- ═══════════════════════════════════════════
      SLIDE 5 — MERGE IN ACTION
