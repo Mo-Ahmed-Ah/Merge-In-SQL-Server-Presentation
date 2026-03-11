@@ -1397,58 +1397,7 @@
     </section>
 
     <!-- ═══════════════════════════════════════════
-     SLIDE 2 — WHAT IS MERGE
-═══════════════════════════════════════════ -->
-    <section class="slide" id="s2">
-        <div class="wrap">
-            <p class="eyebrow fadeup">What is MERGE</p>
-            <h2 class="fadeup">One Statement.<br><span class="hi">Three Operations.</span></h2>
-            <div class="divider fadeup"></div>
-
-            <div class="two fadeup">
-                <div>
-                    <p class="lead">The <strong>MERGE</strong> statement in Microsoft SQL Server allows you to
-                        <strong>synchronize two tables</strong> using a single SQL statement — comparing a source table
-                        against a target table and applying all necessary changes atomically.</p>
-                    <div class="cards stag">
-                        <div class="card">
-                            <div class="card-ico ico-g">＋</div>
-                            <h3>INSERT New Rows</h3>
-                            <p>When a row exists in the Source but not in the Target, MERGE automatically inserts it.
-                            </p>
-                        </div>
-                        <div class="card">
-                            <div class="card-ico ico-a">⟳</div>
-                            <h3>UPDATE Existing Rows</h3>
-                            <p>When a matching row is found in both tables, MERGE updates the Target with Source values.
-                            </p>
-                        </div>
-                        <div class="card">
-                            <div class="card-ico ico-r">✕</div>
-                            <h3>DELETE Stale Rows</h3>
-                            <p>When a row exists in Target but is no longer in Source, MERGE deletes it.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="fadeup">
-                    <div class="img-card">
-                        <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=900&q=80"
-                            alt="Data flow visualization" loading="lazy">
-                    </div>
-                    <div class="card" style="margin-top:1rem;border-color:rgba(79,142,247,.3)">
-                        <div class="card-ico ico-b">💡</div>
-                        <h3>Introduced in SQL Server 2008</h3>
-                        <p>MERGE is ANSI SQL:2003 compliant and has been available since SQL Server 2008. It's ideal for
-                            ETL pipelines, staging-to-production syncs, and upsert patterns.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="s-num">02 / 09</div>
-    </section>
-
-    <!-- ═══════════════════════════════════════════
-     SLIDE 3 — THE PROBLEM
+     SLIDE 2 — THE PROBLEM
 ═══════════════════════════════════════════ -->
     <section class="slide" id="s3">
         <div class="wrap">
@@ -1518,6 +1467,59 @@
 <span class="kw">WHERE NOT EXISTS</span> (
     <span class="kw">SELECT</span> <span class="num">1</span> <span class="kw">FROM</span> <span class="id">UpdateEmpolyes</span> <span class="id">u</span> <span class="kw">WHERE</span> <span class="id">u</span><span class="op">.</span><span class="id">NationalId</span> <span class="op">=</span> <span class="id">e</span><span class="op">.</span><span class="id">NationalId</span>
 )<span class="op">;</span></pre>
+                </div>
+            </div>
+        </div>
+        <div class="s-num">02 / 09</div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════════
+     SLIDE 3 — WHAT IS MERGE
+═══════════════════════════════════════════ -->
+    <section class="slide" id="s2">
+        <div class="wrap">
+            <p class="eyebrow fadeup">What is MERGE</p>
+            <h2 class="fadeup">One Statement.<br><span class="hi">Three Operations.</span></h2>
+            <div class="divider fadeup"></div>
+
+            <div class="two fadeup">
+                <div>
+                    <p class="lead">The <strong>MERGE</strong> statement in Microsoft SQL Server allows you to
+                        <strong>synchronize two tables</strong> using a single SQL statement — comparing a source table
+                        against a target table and applying all necessary changes atomically.
+                    </p>
+                    <div class="cards stag">
+                        <div class="card">
+                            <div class="card-ico ico-g">＋</div>
+                            <h3>INSERT New Rows</h3>
+                            <p>When a row exists in the Source but not in the Target, MERGE automatically inserts it.
+                            </p>
+                        </div>
+                        <div class="card">
+                            <div class="card-ico ico-a">⟳</div>
+                            <h3>UPDATE Existing Rows</h3>
+                            <p>When a matching row is found in both tables, MERGE updates the Target with Source values.
+                            </p>
+                        </div>
+                        <div class="card">
+                            <div class="card-ico ico-r">✕</div>
+                            <h3>DELETE Stale Rows</h3>
+                            <p>When a row exists in Target but is no longer in Source, MERGE deletes it.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="fadeup">
+                    <div class="img-card">
+                        <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=900&q=80"
+                            alt="Data flow visualization" loading="lazy">
+                    </div>
+                    <div class="card" style="margin-top:1rem;border-color:rgba(79,142,247,.3)">
+                        <div class="card-ico ico-b">💡</div>
+                        <h3>Introduced in SQL Server 2008</h3>
+                        <p>MERGE is ANSI SQL:2003 compliant and has been available since SQL Server 2008. It's ideal for
+                            ETL pipelines, staging-to-production syncs, and upsert patterns.</p>
+                    </div>
                 </div>
             </div>
         </div>
