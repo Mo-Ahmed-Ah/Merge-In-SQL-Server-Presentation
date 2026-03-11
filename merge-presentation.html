@@ -1,0 +1,2297 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MERGE Statement in SQL Server — Employee Data Synchronization</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,800;1,9..144,400&family=DM+Sans:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <style>
+        /* ═══════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════ */
+        :root {
+            --bg: #09090b;
+            --bg2: #0f0f12;
+            --bg3: #18181d;
+            --bg4: #1e1e25;
+            --surface: #26262f;
+            --border: #2e2e38;
+            --border2: #3a3a48;
+            --text: #f0f0f5;
+            --text2: #9898ac;
+            --text3: #5a5a6e;
+            --blue: #4f8ef7;
+            --blue-dim: rgba(79, 142, 247, .14);
+            --green: #34d399;
+            --green-dim: rgba(52, 211, 153, .13);
+            --amber: #fbbf24;
+            --amber-dim: rgba(251, 191, 36, .13);
+            --red: #f87171;
+            --red-dim: rgba(248, 113, 113, .13);
+            --purple: #a78bfa;
+            --purple-dim: rgba(167, 139, 250, .13);
+            --glow-blue: rgba(79, 142, 247, .18);
+            --card: rgba(24, 24, 29, .85);
+            --code-bg: #0d0d10;
+            --nav-bg: rgba(9, 9, 11, .88);
+        }
+
+        [data-theme="light"] {
+            --bg: #f7f7fb;
+            --bg2: #ffffff;
+            --bg3: #f0f0f6;
+            --bg4: #e8e8f0;
+            --surface: #ffffff;
+            --border: #dcdce8;
+            --border2: #c8c8d8;
+            --text: #18181d;
+            --text2: #52526a;
+            --text3: #9898b0;
+            --blue: #2563eb;
+            --blue-dim: rgba(37, 99, 235, .09);
+            --green: #059669;
+            --green-dim: rgba(5, 150, 105, .09);
+            --amber: #d97706;
+            --amber-dim: rgba(217, 119, 6, .09);
+            --red: #dc2626;
+            --red-dim: rgba(220, 38, 38, .09);
+            --purple: #7c3aed;
+            --purple-dim: rgba(124, 58, 237, .09);
+            --glow-blue: rgba(37, 99, 235, .1);
+            --card: rgba(255, 255, 255, .92);
+            --code-bg: #f4f4f9;
+            --nav-bg: rgba(247, 247, 251, .92);
+        }
+
+        /* ═══════════════════════════════════════════
+   RESET + BASE
+═══════════════════════════════════════════ */
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        html {
+            scroll-behavior: smooth;
+            font-size: 16px
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            transition: background .35s, color .35s;
+        }
+
+        img {
+            display: block;
+            max-width: 100%
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit
+        }
+
+        /* ═══════════════════════════════════════════
+   NAV
+═══════════════════════════════════════════ */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 200;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.75rem;
+            background: var(--nav-bg);
+            backdrop-filter: blur(18px);
+            border-bottom: 1px solid var(--border);
+            transition: background .35s, border-color .35s;
+        }
+
+        .nav-brand {
+            font-family: 'DM Mono', monospace;
+            font-size: .8rem;
+            font-weight: 500;
+            color: var(--blue);
+            letter-spacing: .06em;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+
+        .nav-brand-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: blink 2.4s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: .25
+            }
+        }
+
+        .nav-pills {
+            display: flex;
+            gap: .15rem;
+            list-style: none;
+        }
+
+        .nav-pills a {
+            font-family: 'DM Mono', monospace;
+            font-size: .68rem;
+            font-weight: 500;
+            color: var(--text2);
+            padding: .28rem .55rem;
+            border-radius: 5px;
+            transition: color .2s, background .2s;
+        }
+
+        .nav-pills a:hover,
+        .nav-pills a.active {
+            color: var(--blue);
+            background: var(--blue-dim);
+        }
+
+        /* Theme toggle */
+        .t-toggle {
+            width: 42px;
+            height: 22px;
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            border-radius: 11px;
+            cursor: pointer;
+            position: relative;
+            transition: background .3s;
+            flex-shrink: 0;
+        }
+
+        .t-toggle::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--blue);
+            transition: transform .3s;
+        }
+
+        [data-theme="light"] .t-toggle::after {
+            transform: translateX(20px)
+        }
+
+        /* Progress bar */
+        .prog {
+            position: fixed;
+            top: 52px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: transparent;
+            z-index: 199;
+        }
+
+        .prog-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--blue), var(--purple));
+            width: 0%;
+            transition: width .08s linear;
+        }
+
+        /* ═══════════════════════════════════════════
+   SLIDE WRAPPER
+═══════════════════════════════════════════ */
+        .slide {
+            min-height: 100vh;
+            padding: 6rem 2rem 5rem;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .slide:nth-child(even) {
+            background: var(--bg2)
+        }
+
+        .slide:nth-child(odd) {
+            background: var(--bg)
+        }
+
+        .wrap {
+            max-width: 1080px;
+            margin: 0 auto;
+            width: 100%
+        }
+
+        /* slide counter */
+        .s-num {
+            position: absolute;
+            bottom: 1.75rem;
+            right: 2rem;
+            font-family: 'DM Mono', monospace;
+            font-size: .65rem;
+            color: var(--text3);
+            letter-spacing: .08em;
+        }
+
+        /* ═══════════════════════════════════════════
+   TYPOGRAPHY
+═══════════════════════════════════════════ */
+        .eyebrow {
+            font-family: 'DM Mono', monospace;
+            font-size: .68rem;
+            font-weight: 500;
+            color: var(--blue);
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: .45rem;
+            margin-bottom: .7rem;
+        }
+
+        .eyebrow::before {
+            content: '//';
+            opacity: .45
+        }
+
+        h1 {
+            font-family: 'Fraunces', serif;
+            font-size: clamp(2.8rem, 7vw, 5.6rem);
+            font-weight: 800;
+            line-height: 1.04;
+            letter-spacing: -.03em;
+            margin-bottom: 1.25rem;
+        }
+
+        h2 {
+            font-family: 'Fraunces', serif;
+            font-size: clamp(2rem, 4.5vw, 3rem);
+            font-weight: 700;
+            line-height: 1.1;
+            letter-spacing: -.025em;
+            margin-bottom: .9rem;
+        }
+
+        .hi {
+            background: linear-gradient(135deg, var(--blue) 0%, var(--purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .lead {
+            font-size: 1.05rem;
+            color: var(--text2);
+            line-height: 1.75;
+            max-width: 640px;
+            margin-bottom: 2.25rem;
+            font-weight: 300;
+        }
+
+        /* ═══════════════════════════════════════════
+   HERO
+═══════════════════════════════════════════ */
+        #s1 {
+            min-height: 100vh;
+            background: var(--bg) !important;
+            padding-top: 52px;
+        }
+
+        .hero-grid {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(79, 142, 247, .05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(79, 142, 247, .05) 1px, transparent 1px);
+            background-size: 56px 56px;
+        }
+
+        [data-theme="light"] .hero-grid {
+            background-image:
+                linear-gradient(rgba(37, 99, 235, .06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(37, 99, 235, .06) 1px, transparent 1px);
+        }
+
+        .hero-glow {
+            position: absolute;
+            width: 700px;
+            height: 700px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(79, 142, 247, .11) 0%, transparent 68%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        .hero-img {
+            position: absolute;
+            inset: 0;
+            background: url('https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=1600&q=75') center/cover no-repeat;
+            opacity: .055;
+        }
+
+        [data-theme="light"] .hero-img {
+            opacity: .035
+        }
+
+        .hero-inner {
+            position: relative;
+            z-index: 1;
+            text-align: center
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            background: var(--blue-dim);
+            border: 1px solid rgba(79, 142, 247, .28);
+            color: var(--blue);
+            padding: .35rem 1rem;
+            border-radius: 100px;
+            font-family: 'DM Mono', monospace;
+            font-size: .72rem;
+            font-weight: 500;
+            margin-bottom: 1.8rem;
+            letter-spacing: .04em;
+        }
+
+        .hero-badge span {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--blue);
+            animation: blink 2s ease-in-out infinite;
+        }
+
+        .hero-ops {
+            display: flex;
+            gap: .6rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 2.25rem;
+        }
+
+        .op-tag {
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+            padding: .4rem .9rem;
+            border-radius: 8px;
+            font-family: 'DM Mono', monospace;
+            font-size: .75rem;
+            font-weight: 500;
+            border: 1px solid transparent;
+            transition: transform .2s;
+        }
+
+        .op-tag:hover {
+            transform: translateY(-2px)
+        }
+
+        .op-tag.ins {
+            background: var(--green-dim);
+            border-color: rgba(52, 211, 153, .3);
+            color: var(--green)
+        }
+
+        .op-tag.upd {
+            background: var(--amber-dim);
+            border-color: rgba(251, 191, 36, .3);
+            color: var(--amber)
+        }
+
+        .op-tag.del {
+            background: var(--red-dim);
+            border-color: rgba(248, 113, 113, .3);
+            color: var(--red)
+        }
+
+        .op-tag.mrg {
+            background: var(--blue-dim);
+            border-color: rgba(79, 142, 247, .3);
+            color: var(--blue)
+        }
+
+        .scroll-cue {
+            margin-top: 3.5rem;
+            font-family: 'DM Mono', monospace;
+            font-size: .65rem;
+            color: var(--text3);
+            letter-spacing: .1em;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: .5rem;
+        }
+
+        .scroll-cue::after {
+            content: '';
+            width: 1px;
+            height: 48px;
+            background: linear-gradient(to bottom, var(--text3), transparent);
+            animation: scrollpulse 2.2s ease-in-out infinite;
+        }
+
+        @keyframes scrollpulse {
+
+            0%,
+            100% {
+                opacity: .25
+            }
+
+            50% {
+                opacity: 1
+            }
+        }
+
+        /* ═══════════════════════════════════════════
+   CARDS
+═══════════════════════════════════════════ */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1.5rem;
+            backdrop-filter: blur(8px);
+            transition: border-color .3s, transform .3s, box-shadow .3s;
+        }
+
+        .card:hover {
+            border-color: var(--blue);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 36px var(--glow-blue);
+        }
+
+        .card-ico {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            margin-bottom: 1rem;
+        }
+
+        .ico-g {
+            background: var(--green-dim)
+        }
+
+        .ico-b {
+            background: var(--blue-dim)
+        }
+
+        .ico-a {
+            background: var(--amber-dim)
+        }
+
+        .ico-r {
+            background: var(--red-dim)
+        }
+
+        .ico-p {
+            background: var(--purple-dim)
+        }
+
+        .card h3 {
+            font-family: 'Fraunces', serif;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: .4rem;
+        }
+
+        .card p {
+            color: var(--text2);
+            font-size: .85rem;
+            line-height: 1.65
+        }
+
+        /* ═══════════════════════════════════════════
+   CODE BLOCK
+═══════════════════════════════════════════ */
+        .code-wrap {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            font-family: 'DM Mono', monospace;
+        }
+
+        .code-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: .7rem 1.1rem;
+            background: var(--bg3);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .code-dots {
+            display: flex;
+            gap: 5px
+        }
+
+        .cd {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%
+        }
+
+        .cd.r {
+            background: #ff5f57
+        }
+
+        .cd.y {
+            background: #febc2e
+        }
+
+        .cd.g {
+            background: #28c840
+        }
+
+        .code-fname {
+            font-size: .68rem;
+            color: var(--text2);
+            letter-spacing: .05em;
+        }
+
+        .code-body {
+            padding: 1.4rem 1.6rem;
+            overflow-x: auto;
+            font-size: .81rem;
+            line-height: 1.9;
+        }
+
+        /* token colours */
+        .kw {
+            color: #f472b6
+        }
+
+        .kw2 {
+            color: #c084fc
+        }
+
+        .fn {
+            color: #fb923c
+        }
+
+        .str {
+            color: #86efac
+        }
+
+        .num {
+            color: #67e8f9
+        }
+
+        .cmt {
+            color: #6b7280;
+            font-style: italic
+        }
+
+        .id {
+            color: #e2e8f0
+        }
+
+        .op {
+            color: #7dd3fc
+        }
+
+        [data-theme="light"] .kw {
+            color: #db2777
+        }
+
+        [data-theme="light"] .kw2 {
+            color: #7c3aed
+        }
+
+        [data-theme="light"] .fn {
+            color: #c2410c
+        }
+
+        [data-theme="light"] .str {
+            color: #16a34a
+        }
+
+        [data-theme="light"] .num {
+            color: #0891b2
+        }
+
+        [data-theme="light"] .cmt {
+            color: #6b7280
+        }
+
+        [data-theme="light"] .id {
+            color: #1e293b
+        }
+
+        [data-theme="light"] .op {
+            color: #0369a1
+        }
+
+        /* ═══════════════════════════════════════════
+   TWO / THREE COL
+═══════════════════════════════════════════ */
+        .two {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.75rem;
+            align-items: start
+        }
+
+        .three {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.1rem
+        }
+
+        @media(max-width:820px) {
+            .two {
+                grid-template-columns: 1fr
+            }
+
+            .three {
+                grid-template-columns: 1fr
+            }
+        }
+
+        /* ═══════════════════════════════════════════
+   COMPARISON WIDGET
+═══════════════════════════════════════════ */
+        .vs-grid {
+            display: grid;
+            grid-template-columns: 1fr 44px 1fr;
+            gap: 1rem;
+            align-items: start
+        }
+
+        @media(max-width:700px) {
+            .vs-grid {
+                grid-template-columns: 1fr
+            }
+
+            .vs-sep {
+                display: none
+            }
+        }
+
+        .vs-sep {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            font-family: 'Fraunces', serif;
+            font-weight: 700;
+            font-size: .8rem;
+            color: var(--text2);
+            margin-top: 1.8rem;
+        }
+
+        .vs-box {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+
+        .vs-box h4 {
+            font-family: 'DM Mono', monospace;
+            font-size: .7rem;
+            font-weight: 500;
+            letter-spacing: .06em;
+            padding: .28rem .65rem;
+            border-radius: 5px;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        .vs-box.bad h4 {
+            background: var(--red-dim);
+            color: var(--red)
+        }
+
+        .vs-box.good h4 {
+            background: var(--green-dim);
+            color: var(--green)
+        }
+
+        .vs-box ul {
+            list-style: none
+        }
+
+        .vs-box li {
+            font-family: 'DM Mono', monospace;
+            font-size: .75rem;
+            color: var(--text2);
+            padding: .3rem 0;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+
+        .vs-box.bad li::before {
+            content: '✕';
+            color: var(--red);
+            font-weight: 700
+        }
+
+        .vs-box.good li::before {
+            content: '✓';
+            color: var(--green);
+            font-weight: 700
+        }
+
+        /* ═══════════════════════════════════════════
+   EMPLOYEE TABLES
+═══════════════════════════════════════════ */
+        .tbl-wrap {
+            overflow-x: auto;
+            border-radius: 10px;
+            border: 1px solid var(--border)
+        }
+
+        .tbl {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'DM Mono', monospace;
+            font-size: .77rem;
+        }
+
+        .tbl thead tr {
+            background: var(--bg3)
+        }
+
+        .tbl th {
+            padding: .65rem .9rem;
+            text-align: left;
+            color: var(--text2);
+            font-weight: 500;
+            font-size: .67rem;
+            letter-spacing: .06em;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tbl td {
+            padding: .6rem .9rem;
+            border-bottom: 1px solid rgba(46, 46, 56, .5);
+        }
+
+        [data-theme="light"] .tbl td {
+            border-bottom: 1px solid rgba(220, 220, 232, .5)
+        }
+
+        .tbl tr:last-child td {
+            border-bottom: none
+        }
+
+        .tbl tr.row-upd td {
+            background: rgba(251, 191, 36, .06)
+        }
+
+        .tbl tr.row-ins td {
+            background: rgba(52, 211, 153, .06)
+        }
+
+        .tbl tr.row-del td {
+            background: rgba(248, 113, 113, .06);
+            opacity: .7
+        }
+
+        .tbl tr.row-del td {
+            text-decoration: line-through;
+            color: var(--text3)
+        }
+
+        .badge {
+            display: inline-block;
+            padding: .18rem .55rem;
+            border-radius: 4px;
+            font-size: .65rem;
+            font-weight: 600;
+            letter-spacing: .04em;
+        }
+
+        .b-upd {
+            background: var(--amber-dim);
+            color: var(--amber)
+        }
+
+        .b-ins {
+            background: var(--green-dim);
+            color: var(--green)
+        }
+
+        .b-del {
+            background: var(--red-dim);
+            color: var(--red)
+        }
+
+        .b-nc {
+            background: var(--blue-dim);
+            color: var(--blue)
+        }
+
+        /* ═══════════════════════════════════════════
+   MERGE FLOW DIAGRAM
+═══════════════════════════════════════════ */
+        .flow {
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            gap: 0;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        .flow-box {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem 1rem;
+            min-width: 170px;
+            text-align: center;
+        }
+
+        .flow-box h4 {
+            font-family: 'DM Mono', monospace;
+            font-size: .7rem;
+            font-weight: 500;
+            letter-spacing: .06em;
+            margin-bottom: .9rem;
+            padding: .25rem .6rem;
+            border-radius: 5px;
+            display: inline-block;
+        }
+
+        .flow-box.src h4 {
+            background: var(--blue-dim);
+            color: var(--blue)
+        }
+
+        .flow-box.tgt h4 {
+            background: var(--green-dim);
+            color: var(--green)
+        }
+
+        .flow-box.mgr h4 {
+            background: var(--purple-dim);
+            color: var(--purple)
+        }
+
+        .flow-row {
+            font-family: 'DM Mono', monospace;
+            font-size: .7rem;
+            color: var(--text2);
+            padding: .22rem .4rem;
+            border-radius: 4px;
+            margin-bottom: .2rem;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+        }
+
+        .frd {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0
+        }
+
+        .flow-arrow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0 .3rem;
+            gap: .35rem;
+            min-width: 90px;
+        }
+
+        .fa-op {
+            font-family: 'DM Mono', monospace;
+            font-size: .65rem;
+            font-weight: 500;
+            padding: .2rem .55rem;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        .fa-upd {
+            background: var(--amber-dim);
+            color: var(--amber)
+        }
+
+        .fa-ins {
+            background: var(--green-dim);
+            color: var(--green)
+        }
+
+        .fa-del {
+            background: var(--red-dim);
+            color: var(--red)
+        }
+
+        .fa-arrow {
+            font-size: 1.1rem;
+            color: var(--text3)
+        }
+
+        @media(max-width:600px) {
+            .flow {
+                flex-direction: column;
+                align-items: center
+            }
+
+            .flow-arrow {
+                flex-direction: row;
+                min-width: unset;
+                padding: .3rem 0
+            }
+        }
+
+        /* ═══════════════════════════════════════════
+   STEP CASES
+═══════════════════════════════════════════ */
+        .cases {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem
+        }
+
+        .case {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.4rem;
+            transition: transform .3s, box-shadow .3s, border-color .3s;
+        }
+
+        .case:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 32px rgba(0, 0, 0, .25)
+        }
+
+        .case-tag {
+            font-family: 'DM Mono', monospace;
+            font-size: .65rem;
+            font-weight: 600;
+            letter-spacing: .08em;
+            padding: .22rem .6rem;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: .9rem;
+        }
+
+        .c-upd {
+            background: var(--amber-dim);
+            color: var(--amber);
+            border: 1px solid rgba(251, 191, 36, .25)
+        }
+
+        .c-ins {
+            background: var(--green-dim);
+            color: var(--green);
+            border: 1px solid rgba(52, 211, 153, .25)
+        }
+
+        .c-del {
+            background: var(--red-dim);
+            color: var(--red);
+            border: 1px solid rgba(248, 113, 113, .25)
+        }
+
+        .c-nc {
+            background: var(--blue-dim);
+            color: var(--blue);
+            border: 1px solid rgba(79, 142, 247, .25)
+        }
+
+        .case-emp {
+            font-family: 'Fraunces', serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: .3rem;
+        }
+
+        .case-detail {
+            color: var(--text2);
+            font-size: .82rem;
+            line-height: 1.6
+        }
+
+        .case-ico {
+            font-size: 1.6rem;
+            margin-bottom: .7rem
+        }
+
+        /* ═══════════════════════════════════════════
+   ADVANTAGE CARDS (numbered)
+═══════════════════════════════════════════ */
+        .adv-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem
+        }
+
+        .adv {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1.5rem;
+            transition: all .3s;
+        }
+
+        .adv:hover {
+            transform: translateY(-4px);
+            border-color: var(--blue);
+            box-shadow: 0 10px 32px var(--glow-blue)
+        }
+
+        .adv-n {
+            font-family: 'Fraunces', serif;
+            font-size: 2.5rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: .75rem;
+            background: linear-gradient(135deg, var(--blue), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .adv h3 {
+            font-family: 'Fraunces', serif;
+            font-weight: 600;
+            margin-bottom: .4rem;
+            font-size: .98rem
+        }
+
+        .adv p {
+            color: var(--text2);
+            font-size: .84rem;
+            line-height: 1.65
+        }
+
+        /* ═══════════════════════════════════════════
+   BEST PRACTICE LIST
+═══════════════════════════════════════════ */
+        .bp-list {
+            display: flex;
+            flex-direction: column;
+            gap: .75rem
+        }
+
+        .bp {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.1rem;
+            transition: border-color .3s;
+        }
+
+        .bp:hover {
+            border-color: var(--blue)
+        }
+
+        .bp-ico {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            background: var(--blue-dim);
+            border: 1px solid rgba(79, 142, 247, .2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .95rem;
+            flex-shrink: 0;
+        }
+
+        .bp h4 {
+            font-family: 'Fraunces', serif;
+            font-weight: 600;
+            font-size: .9rem;
+            margin-bottom: .28rem
+        }
+
+        .bp p {
+            color: var(--text2);
+            font-size: .82rem;
+            line-height: 1.6
+        }
+
+        /* ═══════════════════════════════════════════
+   CONCLUSION
+═══════════════════════════════════════════ */
+        #s9 {
+            text-align: center;
+            background: var(--bg) !important
+        }
+
+        #s9::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at center, rgba(79, 142, 247, .07) 0%, transparent 70%);
+        }
+
+        .conclusion-q {
+            font-family: 'Fraunces', serif;
+            font-size: clamp(1.05rem, 2.2vw, 1.4rem);
+            font-weight: 400;
+            font-style: italic;
+            line-height: 1.7;
+            max-width: 780px;
+            margin: 0 auto 2.5rem;
+            color: var(--text2);
+            position: relative;
+        }
+
+        .conclusion-q strong {
+            color: var(--text);
+            font-weight: 600;
+            font-style: normal
+        }
+
+        .final-row {
+            display: flex;
+            gap: .65rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 2.5rem;
+        }
+
+        .fp {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: .55rem 1.1rem;
+            font-family: 'DM Mono', monospace;
+            font-size: .76rem;
+            transition: all .25s;
+        }
+
+        .fp:hover {
+            border-color: var(--blue);
+            color: var(--blue);
+            transform: translateY(-2px)
+        }
+
+        /* ═══════════════════════════════════════════
+   IMAGE CARD
+═══════════════════════════════════════════ */
+        .img-card {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            aspect-ratio: 16/9;
+        }
+
+        .img-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover
+        }
+
+        /* ═══════════════════════════════════════════
+   SECTION DIVIDER
+═══════════════════════════════════════════ */
+        .divider {
+            width: 48px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--blue), var(--purple));
+            border-radius: 2px;
+            margin-bottom: 2rem;
+        }
+
+        /* ═══════════════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════════════ */
+        .fadeup {
+            opacity: 0;
+            transform: translateY(22px);
+            transition: opacity .7s ease, transform .7s ease
+        }
+
+        .fadeup.on {
+            opacity: 1;
+            transform: none
+        }
+
+        .stag>* {
+            opacity: 0;
+            transform: translateY(18px);
+            transition: opacity .5s ease, transform .5s ease
+        }
+
+        .stag.on>*:nth-child(1) {
+            opacity: 1;
+            transform: none;
+            transition-delay: .05s
+        }
+
+        .stag.on>*:nth-child(2) {
+            opacity: 1;
+            transform: none;
+            transition-delay: .15s
+        }
+
+        .stag.on>*:nth-child(3) {
+            opacity: 1;
+            transform: none;
+            transition-delay: .25s
+        }
+
+        .stag.on>*:nth-child(4) {
+            opacity: 1;
+            transform: none;
+            transition-delay: .35s
+        }
+
+        .stag.on>*:nth-child(5) {
+            opacity: 1;
+            transform: none;
+            transition-delay: .45s
+        }
+
+        /* ═══════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════ */
+        footer {
+            padding: 1.5rem 2rem;
+            background: var(--bg2);
+            border-top: 1px solid var(--border);
+            text-align: center;
+            font-family: 'DM Mono', monospace;
+            font-size: .68rem;
+            color: var(--text3);
+        }
+
+        /* ═══════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════ */
+        @media(max-width:768px) {
+            .nav-pills {
+                display: none
+            }
+
+            h1 {
+                font-size: 2.4rem
+            }
+
+            h2 {
+                font-size: 1.65rem
+            }
+
+            .slide {
+                padding: 5rem 1.25rem 4rem
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg2)
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border2);
+            border-radius: 3px
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ═══ NAV ═══ -->
+    <nav>
+        <div class="nav-brand">
+            <div class="nav-brand-dot"></div>
+            SQL&nbsp;<span style="color:var(--text3)">/</span>&nbsp;MERGE
+        </div>
+        <ul class="nav-pills">
+            <li><a href="#s1">Intro</a></li>
+            <li><a href="#s2">What is</a></li>
+            <li><a href="#s3">Problem</a></li>
+            <li><a href="#s4">Example</a></li>
+            <li><a href="#s5">In Action</a></li>
+            <li><a href="#s6">Step-by-Step</a></li>
+            <li><a href="#s7">Advantages</a></li>
+            <li><a href="#s8">Best Practices</a></li>
+            <li><a href="#s9">Conclusion</a></li>
+        </ul>
+        <button class="t-toggle" id="themeBtn" aria-label="Toggle theme"></button>
+    </nav>
+    <div class="prog">
+        <div class="prog-fill" id="progFill"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
+     SLIDE 1 — TITLE
+═══════════════════════════════════════════ -->
+    <section class="slide" id="s1">
+        <div class="hero-grid"></div>
+        <div class="hero-img"></div>
+        <div class="hero-glow"></div>
+
+        <div class="wrap hero-inner">
+            <div class="hero-badge"><span></span> Microsoft SQL Server · T-SQL · Data Synchronization</div>
+            <h1>MERGE<br><span class="hi">Statement</span><br>in SQL Server</h1>
+            <p class="lead" style="margin:0 auto 2rem;text-align:center">
+                Practical Example with <strong style="color:var(--text)">Employee Data Synchronization</strong> —
+                synchronize two tables with a single, elegant SQL statement.
+            </p>
+            <div class="hero-ops">
+                <div class="op-tag ins">＋ INSERT new employees</div>
+                <div class="op-tag upd">⟳ UPDATE existing records</div>
+                <div class="op-tag del">✕ DELETE removed employees</div>
+                <div class="op-tag mrg">⚡ One MERGE statement</div>
+            </div>
+            <div class="scroll-cue">SCROLL TO EXPLORE</div>
+        </div>
+        <div class="s-num">01 / 09</div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+     SLIDE 2 — WHAT IS MERGE
+═══════════════════════════════════════════ -->
+    <section class="slide" id="s2">
+        <div class="wrap">
+            <p class="eyebrow fadeup">What is MERGE</p>
+            <h2 class="fadeup">One Statement.<br><span class="hi">Three Operations.</span></h2>
+            <div class="divider fadeup"></div>
+
+            <div class="two fadeup">
+                <div>
+                    <p class="lead">The <strong>MERGE</strong> statement in Microsoft SQL Server allows you to
+                        <strong>synchronize two tables</strong> using a single SQL statement — comparing a source table
+                        against a target table and applying all necessary changes atomically.</p>
+                    <div class="cards stag">
+                        <div class="card">
+                            <div class="card-ico ico-g">＋</div>
+                            <h3>INSERT New Rows</h3>
+                            <p>When a row exists in the Source but not in the Target, MERGE automatically inserts it.
+                            </p>
+                        </div>
+                        <div class="card">
+                            <div class="card-ico ico-a">⟳</div>
+                            <h3>UPDATE Existing Rows</h3>
+                            <p>When a matching row is found in both tables, MERGE updates the Target with Source values.
+                            </p>
+                        </div>
+                        <div class="card">
+                            <div class="card-ico ico-r">✕</div>
+                            <h3>DELETE Stale Rows</h3>
+                            <p>When a row exists in Target but is no longer in Source, MERGE deletes it.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="fadeup">
+                    <div class="img-card">
+                        <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=900&q=80"
+                            alt="Data flow visualization" loading="lazy">
+                    </div>
+                    <div class="card" style="margin-top:1rem;border-color:rgba(79,142,247,.3)">
+                        <div class="card-ico ico-b">💡</div>
+                        <h3>Introduced in SQL Server 2008</h3>
+                        <p>MERGE is ANSI SQL:2003 compliant and has been available since SQL Server 2008. It's ideal for
+                            ETL pipelines, staging-to-production syncs, and upsert patterns.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="s-num">02 / 09</div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+     SLIDE 3 — THE PROBLEM
+═══════════════════════════════════════════ -->
+    <section class="slide" id="s3">
+        <div class="wrap">
+            <p class="eyebrow fadeup">The Problem Without MERGE</p>
+            <h2 class="fadeup">Multiple Queries,<br><span class="hi">One Problem.</span></h2>
+            <div class="divider fadeup"></div>
+            <p class="lead fadeup">To synchronize employee data without MERGE, you'd need <strong>three separate
+                    queries</strong> — increasing complexity, error surface, and maintenance burden.</p>
+
+            <div class="vs-grid fadeup" style="margin-bottom:2rem">
+                <div class="vs-box bad">
+                    <h4>WITHOUT MERGE — 3 queries</h4>
+                    <ul>
+                        <li>Separate UPDATE statement for existing employees</li>
+                        <li>Separate INSERT statement for new employees</li>
+                        <li>Separate DELETE statement for removed employees</li>
+                        <li>Multiple database round-trips</li>
+                        <li>Complex manual transaction handling</li>
+                        <li>Race condition risk between statements</li>
+                        <li>Hard to read &amp; maintain</li>
+                    </ul>
+                </div>
+                <div class="vs-sep">VS</div>
+                <div class="vs-box good">
+                    <h4>WITH MERGE — 1 statement</h4>
+                    <ul>
+                        <li>Single atomic MERGE statement</li>
+                        <li>All operations in one database pass</li>
+                        <li>Built-in transactional integrity</li>
+                        <li>Clear, readable WHEN clauses</li>
+                        <li>No race conditions between operations</li>
+                        <li>Easy to audit &amp; debug</li>
+                        <li>Less code, fewer bugs</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="code-wrap fadeup">
+                <div class="code-bar">
+                    <div class="code-dots">
+                        <div class="cd r"></div>
+                        <div class="cd y"></div>
+                        <div class="cd g"></div>
+                    </div>
+                    <span class="code-fname">without_merge.sql — ❌ Old approach</span>
+                </div>
+                <div class="code-body">
+                    <pre><span class="cmt">-- ❌ Step 1: Update existing employees</span>
+<span class="kw">UPDATE</span> <span class="id">Empolyes</span>
+<span class="kw">SET</span>    <span class="id">EmpName</span>        <span class="op">=</span> <span class="id">u</span><span class="op">.</span><span class="id">EmpName</span>,
+       <span class="id">EmpPhoneNumber</span> <span class="op">=</span> <span class="id">u</span><span class="op">.</span><span class="id">EmpPhoneNumber</span>,
+       <span class="id">EmpSalary</span>      <span class="op">=</span> <span class="id">u</span><span class="op">.</span><span class="id">EmpSalary</span>
+<span class="kw">FROM</span>   <span class="id">Empolyes</span> <span class="id">e</span>
+<span class="kw">INNER JOIN</span> <span class="id">UpdateEmpolyes</span> <span class="id">u</span> <span class="kw">ON</span> <span class="id">e</span><span class="op">.</span><span class="id">NationalId</span> <span class="op">=</span> <span class="id">u</span><span class="op">.</span><span class="id">NationalId</span><span class="op">;</span>
+
+<span class="cmt">-- ❌ Step 2: Insert new employees</span>
+<span class="kw">INSERT INTO</span> <span class="id">Empolyes</span> (<span class="id">NationalId</span>, <span class="id">EmpName</span>, <span class="id">EmpPhoneNumber</span>, <span class="id">EmpSalary</span>)
+<span class="kw">SELECT</span> <span class="id">u</span><span class="op">.</span><span class="id">NationalId</span>, <span class="id">u</span><span class="op">.</span><span class="id">EmpName</span>, <span class="id">u</span><span class="op">.</span><span class="id">EmpPhoneNumber</span>, <span class="id">u</span><span class="op">.</span><span class="id">EmpSalary</span>
+<span class="kw">FROM</span>   <span class="id">UpdateEmpolyes</span> <span class="id">u</span>
+<span class="kw">WHERE NOT EXISTS</span> (
+    <span class="kw">SELECT</span> <span class="num">1</span> <span class="kw">FROM</span> <span class="id">Empolyes</span> <span class="id">e</span> <span class="kw">WHERE</span> <span class="id">e</span><span class="op">.</span><span class="id">NationalId</span> <span class="op">=</span> <span class="id">u</span><span class="op">.</span><span class="id">NationalId</span>
+)<span class="op">;</span>
+
+<span class="cmt">-- ❌ Step 3: Delete removed employees</span>
+<span class="kw">DELETE</span> <span class="id">e</span>
+<span class="kw">FROM</span>   <span class="id">Empolyes</span> <span class="id">e</span>
+<span class="kw">WHERE NOT EXISTS</span> (
+    <span class="kw">SELECT</span> <span class="num">1</span> <span class="kw">FROM</span> <span class="id">UpdateEmpolyes</span> <span class="id">u</span> <span class="kw">WHERE</span> <span class="id">u</span><span class="op">.</span><span class="id">NationalId</span> <span class="op">=</span> <span class="id">e</span><span class="op">.</span><span class="id">NationalId</span>
+)<span class="op">;</span></pre>
+                </div>
+            </div>
+        </div>
+        <div class="s-num">03 / 09</div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+     SLIDE 4 — THE PROVIDED EXAMPLE
+═══════════════════════════════════════════ -->
+    <section class="slide" id="s4">
+        <div class="wrap">
+            <p class="eyebrow fadeup">The Provided Example</p>
+            <h2 class="fadeup">Setting Up the<br><span class="hi">Employee Tables.</span></h2>
+            <div class="divider fadeup"></div>
+            <p class="lead fadeup">We work with two tables: <code
+                    style="font-family:'DM Mono',monospace;background:var(--blue-dim);color:var(--blue);padding:.1rem .4rem;border-radius:4px;font-size:.88rem">Empolyes</code>
+                (the target/production table) and <code
+                    style="font-family:'DM Mono',monospace;background:var(--purple-dim);color:var(--purple);padding:.1rem .4rem;border-radius:4px;font-size:.88rem">UpdateEmpolyes</code>
+                (the source/staging table).</p>
+
+            <div class="code-wrap fadeup" style="margin-bottom:1.5rem">
+                <div class="code-bar">
+                    <div class="code-dots">
+                        <div class="cd r"></div>
+                        <div class="cd y"></div>
+                        <div class="cd g"></div>
+                    </div>
+                    <span class="code-fname">01_create_tables.sql</span>
+                </div>
+                <div class="code-body">
+                    <pre><span class="cmt">-- ① Create the TARGET table (production)</span>
+<span class="kw">CREATE TABLE</span> <span class="fn">Empolyes</span> (
+    <span class="id">NationalId</span>     <span class="kw2">INT</span>          <span class="kw">NOT NULL</span>,
+    <span class="id">EmpName</span>        <span class="kw2">VARCHAR</span>(<span class="num">100</span>) <span class="kw">NOT NULL</span>,
+    <span class="id">EmpPhoneNumber</span> <span class="kw2">VARCHAR</span>(<span class="num">20</span>)  <span class="kw">NOT NULL</span>,
+    <span class="id">EmpSalary</span>      <span class="kw2">DECIMAL</span>(<span class="num">10</span>,<span class="num">2</span>) <span class="kw">NOT NULL</span>
+)<span class="op">;</span>
+
+<span class="cmt">-- ② Create the SOURCE table (staging / updated data)</span>
+<span class="kw">CREATE TABLE</span> <span class="fn">UpdateEmpolyes</span> (
+    <span class="id">NationalId</span>     <span class="kw2">INT</span>          <span class="kw">NOT NULL</span>,
+    <span class="id">EmpName</span>        <span class="kw2">VARCHAR</span>(<span class="num">100</span>) <span class="kw">NOT NULL</span>,
+    <span class="id">EmpPhoneNumber</span> <span class="kw2">VARCHAR</span>(<span class="num">20</span>)  <span class="kw">NOT NULL</span>,
+    <span class="id">EmpSalary</span>      <span class="kw2">DECIMAL</span>(<span class="num">10</span>,<span class="num">2</span>) <span class="kw">NOT NULL</span>
+)<span class="op">;</span></pre>
+                </div>
+            </div>
+
+            <div class="two fadeup">
+                <div>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="code-dots">
+                                <div class="cd r"></div>
+                                <div class="cd y"></div>
+                                <div class="cd g"></div>
+                            </div>
+                            <span class="code-fname">02_seed_target.sql</span>
+                        </div>
+                        <div class="code-body">
+                            <pre><span class="cmt">-- ③ Seed the TARGET (Empolyes) table</span>
+<span class="kw">INSERT INTO</span> <span class="fn">Empolyes</span>
+    (<span class="id">NationalId</span>, <span class="id">EmpName</span>, <span class="id">EmpPhoneNumber</span>, <span class="id">EmpSalary</span>)
+<span class="kw">VALUES</span>
+    (<span class="num">1</span>, <span class="str">'Ahmed Mohamed'</span>,  <span class="str">'01012345678'</span>, <span class="num">5000.00</span>),
+    (<span class="num">2</span>, <span class="str">'Islam Mohamed'</span>,  <span class="str">'01098765432'</span>, <span class="num">6000.00</span>),
+    (<span class="num">3</span>, <span class="str">'Mohamed Ahmed'</span>,  <span class="str">'01055555555'</span>, <span class="num">7000.00</span>)<span class="op">;</span>
+<span class="cmt">-- NationalId 3 (Mohamed) will be deleted by MERGE</span></pre>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="code-dots">
+                                <div class="cd r"></div>
+                                <div class="cd y"></div>
+                                <div class="cd g"></div>
+                            </div>
+                            <span class="code-fname">03_seed_source.sql</span>
+                        </div>
+                        <div class="code-body">
+                            <pre><span class="cmt">-- ④ Seed the SOURCE (UpdateEmpolyes) table</span>
+<span class="kw">INSERT INTO</span> <span class="fn">UpdateEmpolyes</span>
+    (<span class="id">NationalId</span>, <span class="id">EmpName</span>, <span class="id">EmpPhoneNumber</span>, <span class="id">EmpSalary</span>)
+<span class="kw">VALUES</span>
+    (<span class="num">1</span>, <span class="str">'Ahmed Mohamed'</span>,  <span class="str">'01011111111'</span>, <span class="num">5500.00</span>),
+    (<span class="num">2</span>, <span class="str">'Islam Mohamed'</span>,  <span class="str">'01022222222'</span>, <span class="num">6500.00</span>),
+    (<span class="num">4</span>, <span class="str">'Asma Ahmed'</span>,     <span class="str">'01033333333'</span>, <span class="num">4500.00</span>)<span class="op">;</span>
+<span class="cmt">-- NationalId 4 (Asma) is new — will be inserted</span></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two fadeup" style="margin-top:1.5rem">
+                <div>
+                    <p
+                        style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--blue);margin-bottom:.6rem;letter-spacing:.06em">
+                        // TARGET TABLE — Empolyes (before MERGE)</p>
+                    <div class="tbl-wrap">
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th>NationalId</th>
+                                    <th>EmpName</th>
+                                    <th>Phone</th>
+                                    <th>Salary</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1</td>
+                                    <td>Ahmed Mohamed</td>
+                                    <td>01012345678</td>
+                                    <td>5,000.00</td>
+                                </tr>
+                                <tr>
+                                    <td>2</td>
+                                    <td>Islam Mohamed</td>
+                                    <td>01098765432</td>
+                                    <td>6,000.00</td>
+                                </tr>
+                                <tr>
+                                    <td>3</td>
+                                    <td>Mohamed Ahmed</td>
+                                    <td>01055555555</td>
+                                    <td>7,000.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div>
+                    <p
+                        style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--purple);margin-bottom:.6rem;letter-spacing:.06em">
+                        // SOURCE TABLE — UpdateEmpolyes</p>
+                    <div class="tbl-wrap">
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th>NationalId</th>
+                                    <th>EmpName</th>
+                                    <th>Phone</th>
+                                    <th>Salary</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1</td>
+                                    <td>Ahmed Mohamed</td>
+                                    <td>01011111111</td>
+                                    <td>5,500.00</td>
+                                </tr>
+                                <tr>
+                                    <td>2</td>
+                                    <td>Islam Mohamed</td>
+                                    <td>01022222222</td>
+                                    <td>6,500.00</td>
+                                </tr>
+                                <tr>
+                                    <td>4</td>
+                                    <td>Asma Ahmed</td>
+                                    <td>01033333333</td>
+                                    <td>4,500.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="s-num">04 / 09</div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+     SLIDE 5 — MERGE IN ACTION
+═══════════════════════════════════════════ -->
+    <section class="slide" id="s5">
+        <div class="wrap">
+            <p class="eyebrow fadeup">MERGE Statement in Action</p>
+            <h2 class="fadeup">The Full<br><span class="hi">MERGE Query.</span></h2>
+            <div class="divider fadeup"></div>
+
+            <div class="two fadeup">
+                <div class="code-wrap">
+                    <div class="code-bar">
+                        <div class="code-dots">
+                            <div class="cd r"></div>
+                            <div class="cd y"></div>
+                            <div class="cd g"></div>
+                        </div>
+                        <span class="code-fname">merge_employees.sql — ✅ Single statement</span>
+                    </div>
+                    <div class="code-body">
+                        <pre><span class="kw">MERGE</span> <span class="fn">Empolyes</span> <span class="kw2">AS</span> <span class="id">Target</span>
+<span class="kw">USING</span> <span class="fn">UpdateEmpolyes</span> <span class="kw2">AS</span> <span class="id">Source</span>
+  <span class="kw">ON</span>  <span class="id">Target</span><span class="op">.</span><span class="id">NationalId</span> <span class="op">=</span> <span class="id">Source</span><span class="op">.</span><span class="id">NationalId</span>
+
+<span class="cmt">-- Case 1: Row exists in BOTH tables → UPDATE</span>
+<span class="kw">WHEN MATCHED THEN</span>
+    <span class="kw">UPDATE SET</span>
+        <span class="id">Target</span><span class="op">.</span><span class="id">EmpName</span>        <span class="op">=</span> <span class="id">Source</span><span class="op">.</span><span class="id">EmpName</span>,
+        <span class="id">Target</span><span class="op">.</span><span class="id">EmpPhoneNumber</span> <span class="op">=</span> <span class="id">Source</span><span class="op">.</span><span class="id">EmpPhoneNumber</span>,
+        <span class="id">Target</span><span class="op">.</span><span class="id">EmpSalary</span>      <span class="op">=</span> <span class="id">Source</span><span class="op">.</span><span class="id">EmpSalary</span>
+
+<span class="cmt">-- Case 2: Row in Source only → INSERT</span>
+<span class="kw">WHEN NOT MATCHED BY TARGET THEN</span>
+    <span class="kw">INSERT</span> (<span class="id">NationalId</span>, <span class="id">EmpName</span>, <span class="id">EmpPhoneNumber</span>, <span class="id">EmpSalary</span>)
+    <span class="kw">VALUES</span> (
+        <span class="id">Source</span><span class="op">.</span><span class="id">NationalId</span>,
+        <span class="id">Source</span><span class="op">.</span><span class="id">EmpName</span>,
+        <span class="id">Source</span><span class="op">.</span><span class="id">EmpPhoneNumber</span>,
+        <span class="id">Source</span><span class="op">.</span><span class="id">EmpSalary</span>
+    )
+
+<span class="cmt">-- Case 3: Row in Target only → DELETE</span>
+<span class="kw">WHEN NOT MATCHED BY SOURCE THEN</span>
+    <span class="kw">DELETE</span><span class="op">;</span>   <span class="cmt">-- semicolon is REQUIRED to end MERGE</span></pre>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="bp-list stag">
+                        <div class="bp">
+                            <div class="bp-ico" style="background:var(--blue-dim);border-color:rgba(79,142,247,.2)">🎯
+                            </div>
+                            <div>
+                                <h4>MERGE … USING … ON</h4>
+                                <p>Declares the <strong>target</strong> (Empolyes), the <strong>source</strong>
+                                    (UpdateEmpolyes), and the <strong>join key</strong> (NationalId) used to match rows.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="bp">
+                            <div class="bp-ico" style="background:var(--amber-dim);border-color:rgba(251,191,36,.2)">⟳
+                            </div>
+                            <div>
+                                <h4>WHEN MATCHED → UPDATE</h4>
+                                <p>Fires when NationalId exists in <em>both</em> tables. Updates phone number and salary
+                                    in the production table.</p>
+                            </div>
+                        </div>
+                        <div class="bp">
+                            <div class="bp-ico" style="background:var(--green-dim);border-color:rgba(52,211,153,.2)">＋
+                            </div>
+                            <div>
+                                <h4>WHEN NOT MATCHED BY TARGET → INSERT</h4>
+                                <p>Fires when NationalId is in Source but missing from Target. Asma Ahmed (ID 4) is a
+                                    new hire — MERGE inserts her.</p>
+                            </div>
+                        </div>
+                        <div class="bp">
+                            <div class="bp-ico" style="background:var(--red-dim);border-color:rgba(248,113,113,.2)">✕
+                            </div>
+                            <div>
+                                <h4>WHEN NOT MATCHED BY SOURCE → DELETE</h4>
+                                <p>Fires when NationalId is in Target but missing from Source. Mohamed Ahmed (ID 3) left
+                                    the company — MERGE removes him.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- flow diagram -->
+            <div class="flow fadeup" style="gap:.5rem;margin-top:2rem">
+                <div class="flow-box src">
+                    <h4>SOURCE</h4>
+                    <div class="flow-row">
+                        <div class="frd" style="background:var(--amber)"></div>ID 1 · Ahmed
+                    </div>
+                    <div class="flow-row">
+                        <div class="frd" style="background:var(--amber)"></div>ID 2 · Islam
+                    </div>
+                    <div class="flow-row">
+                        <div class="frd" style="background:var(--green)"></div>ID 4 · Asma ★
+                    </div>
+                </div>
+
+                <div class="flow-arrow">
+                    <div class="fa-op fa-upd">⟳ UPDATE</div>
+                    <div class="fa-arrow">→</div>
+                    <div class="fa-op fa-upd">⟳ UPDATE</div>
+                    <div class="fa-arrow">→</div>
+                    <div class="fa-op fa-ins">＋ INSERT</div>
+                </div>
+
+                <div class="flow-box mgr">
+                    <h4>MERGE ENGINE</h4>
+                    <div class="flow-row">
+                        <div class="frd" style="background:var(--purple)"></div>ON NationalId
+                    </div>
+                    <div class="flow-row" style="margin-top:.3rem">
+                        <div class="frd" style="background:var(--amber)"></div>WHEN MATCHED
+                    </div>
+                    <div class="flow-row">
+                        <div class="frd" style="background:var(--green)"></div>NOT MATCHED BY TARGET
+                    </div>
+                    <div class="flow-row">
+                        <div class="frd" style="background:var(--red)"></div>NOT MATCHED BY SOURCE
+                    </div>
+                </div>
+
+                <div class="flow-arrow">
+                    <div class="fa-op fa-upd">⟳ UPDATE</div>
+                    <div class="fa-arrow">→</div>
+                    <div class="fa-op fa-upd">⟳ UPDATE</div>
+                    <div class="fa-arrow">→</div>
+                    <div class="fa-op fa-del">✕ DELETE</div>
+                </div>
+
+                <div class="flow-box tgt">
+                    <h4>TARGET (result)</h4>
+                    <div class="flow-row">
+                        <div class="frd" style="background:var(--amber)"></div>ID 1 · Ahmed ✓
+                    </div>
+                    <div class="flow-row">
+                        <div class="frd" style="background:var(--amber)"></div>ID 2 · Islam ✓
+                    </div>
+                    <div class="flow-row">
+                        <div class="frd" style="background:var(--green)"></div>ID 4 · Asma ✓
+                    </div>
+                    <div class="flow-row" style="opacity:.4;text-decoration:line-through">
+                        <div class="frd" style="background:var(--red)"></div>ID 3 · Mohamed ✗
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="s-num">05 / 09</div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+     SLIDE 6 — STEP-BY-STEP
+═══════════════════════════════════════════ -->
+    <section class="slide" id="s6">
+        <div class="wrap">
+            <p class="eyebrow fadeup">How MERGE Works — Step by Step</p>
+            <h2 class="fadeup">Row by Row<br><span class="hi">Analysis.</span></h2>
+            <div class="divider fadeup"></div>
+            <p class="lead fadeup">SQL Server evaluates every row-pair between the two tables and routes each one
+                through the appropriate WHEN clause.</p>
+
+            <div class="cases stag" style="margin-bottom:2.5rem">
+                <div class="case" style="border-color:rgba(251,191,36,.25)">
+                    <div class="case-tag c-upd">WHEN MATCHED → UPDATE</div>
+                    <div class="case-ico">🔄</div>
+                    <div class="case-emp">Ahmed Mohamed</div>
+                    <p class="case-detail">NationalId <strong>1</strong> exists in both tables.<br>
+                        Phone: <code
+                            style="font-family:'DM Mono',monospace;font-size:.78rem;color:var(--amber)">01012345678 → 01011111111</code><br>
+                        Salary: <code
+                            style="font-family:'DM Mono',monospace;font-size:.78rem;color:var(--amber)">5,000 → 5,500</code>
+                    </p>
+                </div>
+                <div class="case" style="border-color:rgba(251,191,36,.25)">
+                    <div class="case-tag c-upd">WHEN MATCHED → UPDATE</div>
+                    <div class="case-ico">🔄</div>
+                    <div class="case-emp">Islam Mohamed</div>
+                    <p class="case-detail">NationalId <strong>2</strong> exists in both tables.<br>
+                        Phone: <code
+                            style="font-family:'DM Mono',monospace;font-size:.78rem;color:var(--amber)">01098765432 → 01022222222</code><br>
+                        Salary: <code
+                            style="font-family:'DM Mono',monospace;font-size:.78rem;color:var(--amber)">6,000 → 6,500</code>
+                    </p>
+                </div>
+                <div class="case" style="border-color:rgba(52,211,153,.25)">
+                    <div class="case-tag c-ins">NOT MATCHED BY TARGET → INSERT</div>
+                    <div class="case-ico">➕</div>
+                    <div class="case-emp">Asma Ahmed</div>
+                    <p class="case-detail">NationalId <strong>4</strong> is in Source only — new hire!<br>
+                        Phone: <code
+                            style="font-family:'DM Mono',monospace;font-size:.78rem;color:var(--green)">01033333333</code><br>
+                        Salary: <code
+                            style="font-family:'DM Mono',monospace;font-size:.78rem;color:var(--green)">4,500.00</code>
+                    </p>
+                </div>
+                <div class="case" style="border-color:rgba(248,113,113,.25)">
+                    <div class="case-tag c-del">NOT MATCHED BY SOURCE → DELETE</div>
+                    <div class="case-ico">🗑️</div>
+                    <div class="case-emp">Mohamed Ahmed</div>
+                    <p class="case-detail">NationalId <strong>3</strong> is in Target only — left company.<br>
+                        Row is removed completely from the<br>production Empolyes table.</p>
+                </div>
+            </div>
+
+            <!-- Before / After tables -->
+            <div class="two fadeup">
+                <div>
+                    <p
+                        style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--text2);margin-bottom:.6rem;letter-spacing:.05em">
+                        // BEFORE MERGE — Empolyes table</p>
+                    <div class="tbl-wrap">
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th>NationalId</th>
+                                    <th>EmpName</th>
+                                    <th>Phone</th>
+                                    <th>Salary</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1</td>
+                                    <td>Ahmed Mohamed</td>
+                                    <td>01012345678</td>
+                                    <td>5,000.00</td>
+                                </tr>
+                                <tr>
+                                    <td>2</td>
+                                    <td>Islam Mohamed</td>
+                                    <td>01098765432</td>
+                                    <td>6,000.00</td>
+                                </tr>
+                                <tr>
+                                    <td>3</td>
+                                    <td>Mohamed Ahmed</td>
+                                    <td>01055555555</td>
+                                    <td>7,000.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div>
+                    <p
+                        style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--green);margin-bottom:.6rem;letter-spacing:.05em">
+                        // AFTER MERGE — Empolyes table</p>
+                    <div class="tbl-wrap">
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th>NationalId</th>
+                                    <th>EmpName</th>
+                                    <th>Phone</th>
+                                    <th>Salary</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="row-upd">
+                                    <td>1</td>
+                                    <td>Ahmed Mohamed</td>
+                                    <td>01011111111</td>
+                                    <td>5,500.00</td>
+                                    <td><span class="badge b-upd">UPDATED</span></td>
+                                </tr>
+                                <tr class="row-upd">
+                                    <td>2</td>
+                                    <td>Islam Mohamed</td>
+                                    <td>01022222222</td>
+                                    <td>6,500.00</td>
+                                    <td><span class="badge b-upd">UPDATED</span></td>
+                                </tr>
+                                <tr class="row-ins">
+                                    <td>4</td>
+                                    <td>Asma Ahmed</td>
+                                    <td>01033333333</td>
+                                    <td>4,500.00</td>
+                                    <td><span class="badge b-ins">INSERTED</span></td>
+                                </tr>
+                                <tr class="row-del">
+                                    <td>3</td>
+                                    <td>Mohamed Ahmed</td>
+                                    <td>01055555555</td>
+                                    <td>7,000.00</td>
+                                    <td><span class="badge b-del">DELETED</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="s-num">06 / 09</div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+     SLIDE 7 — ADVANTAGES
+═══════════════════════════════════════════ -->
+    <section class="slide" id="s7">
+        <div class="wrap">
+            <p class="eyebrow fadeup">Advantages of MERGE</p>
+            <h2 class="fadeup">Why MERGE<br><span class="hi">Wins.</span></h2>
+            <div class="divider fadeup"></div>
+            <p class="lead fadeup">Beyond just being shorter code, MERGE brings structural and architectural advantages
+                to your data synchronization strategy.</p>
+
+            <div class="adv-grid stag" style="margin-bottom:2rem">
+                <div class="adv">
+                    <div class="adv-n">01</div>
+                    <h3>Single Atomic Statement</h3>
+                    <p>All INSERT, UPDATE, and DELETE operations execute in a single atomic transaction. Either all
+                        changes commit — or none do. No partial sync states.</p>
+                </div>
+                <div class="adv">
+                    <div class="adv-n">02</div>
+                    <h3>Reduced Code Complexity</h3>
+                    <p>Replace 3 separate DML statements and a complex transaction wrapper with one clean, expressive
+                        MERGE statement that fits in a single screen.</p>
+                </div>
+                <div class="adv">
+                    <div class="adv-n">03</div>
+                    <h3>Improved Readability</h3>
+                    <p>The WHEN clauses read like business rules: "When matched → update. When new → insert. When gone →
+                        delete." Self-documenting by design.</p>
+                </div>
+                <div class="adv">
+                    <div class="adv-n">04</div>
+                    <h3>Simplifies Synchronization</h3>
+                    <p>Ideal for ETL pipelines, data warehouse loads, and any upsert pattern. One statement replaces
+                        complex staging logic.</p>
+                </div>
+                <div class="adv">
+                    <div class="adv-n">05</div>
+                    <h3>Performance Gains</h3>
+                    <p>A single pass through the data means fewer I/O operations, fewer lock acquisitions, and less
+                        network overhead compared to three separate queries.</p>
+                </div>
+            </div>
+
+            <div class="img-card fadeup" style="max-height:280px">
+                <img src="https://images.unsplash.com/photo-1518432031352-d6fc5c10da5a?w=1200&q=80"
+                    alt="Technology data flow" loading="lazy" style="object-position:center 40%">
+            </div>
+        </div>
+        <div class="s-num">07 / 09</div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+     SLIDE 8 — BEST PRACTICES
+═══════════════════════════════════════════ -->
+    <section class="slide" id="s8">
+        <div class="wrap">
+            <p class="eyebrow fadeup">Best Practices</p>
+            <h2 class="fadeup">Use MERGE<br><span class="hi">Correctly.</span></h2>
+            <div class="divider fadeup"></div>
+            <p class="lead fadeup">MERGE is powerful, but requires careful setup to behave predictably and perform well
+                at scale.</p>
+
+            <div class="two fadeup">
+                <div class="bp-list stag">
+                    <div class="bp">
+                        <div class="bp-ico">🔑</div>
+                        <div>
+                            <h4>Use a Unique Matching Column</h4>
+                            <p>Always match on a primary key or unique identifier — like <code
+                                    style="font-family:'DM Mono',monospace;font-size:.8rem;color:var(--blue)">NationalId</code>
+                                in our example. If the ON condition can match multiple rows in Source, MERGE will throw
+                                an error or cause unpredictable updates.</p>
+                        </div>
+                    </div>
+                    <div class="bp">
+                        <div class="bp-ico">🧪</div>
+                        <div>
+                            <h4>Test with Sample Data First</h4>
+                            <p>Run MERGE against a small representative subset in a <strong>development
+                                    environment</strong>. Verify row counts for each WHEN clause match your expectations
+                                before touching production.</p>
+                        </div>
+                    </div>
+                    <div class="bp">
+                        <div class="bp-ico">⚡</div>
+                        <div>
+                            <h4>Index the Join Columns</h4>
+                            <p>Ensure <code
+                                    style="font-family:'DM Mono',monospace;font-size:.8rem;color:var(--blue)">NationalId</code>
+                                is indexed on both the source and target tables. Without indexes, MERGE will perform
+                                full scans and degrade significantly with large datasets.</p>
+                        </div>
+                    </div>
+                    <div class="bp">
+                        <div class="bp-ico">🛡️</div>
+                        <div>
+                            <h4>Verify Before Production</h4>
+                            <p>Wrap MERGE in a <code
+                                    style="font-family:'DM Mono',monospace;font-size:.8rem;color:var(--blue)">BEGIN TRANSACTION … ROLLBACK</code>
+                                during testing to inspect results before committing. Use the OUTPUT clause to capture
+                                what each row operation did.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fadeup">
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="code-dots">
+                                <div class="cd r"></div>
+                                <div class="cd y"></div>
+                                <div class="cd g"></div>
+                            </div>
+                            <span class="code-fname">safe_test_pattern.sql</span>
+                        </div>
+                        <div class="code-body">
+                            <pre><span class="cmt">-- ✅ Safe testing pattern with transaction</span>
+<span class="kw">BEGIN TRANSACTION</span><span class="op">;</span>
+
+<span class="kw">MERGE</span> <span class="fn">Empolyes</span> <span class="kw2">AS</span> <span class="id">Target</span>
+<span class="kw">USING</span> <span class="fn">UpdateEmpolyes</span> <span class="kw2">AS</span> <span class="id">Source</span>
+  <span class="kw">ON</span>  <span class="id">Target</span><span class="op">.</span><span class="id">NationalId</span> <span class="op">=</span> <span class="id">Source</span><span class="op">.</span><span class="id">NationalId</span>
+<span class="kw">WHEN MATCHED THEN</span>
+    <span class="kw">UPDATE SET</span>
+        <span class="id">Target</span><span class="op">.</span><span class="id">EmpPhoneNumber</span> <span class="op">=</span> <span class="id">Source</span><span class="op">.</span><span class="id">EmpPhoneNumber</span>,
+        <span class="id">Target</span><span class="op">.</span><span class="id">EmpSalary</span>      <span class="op">=</span> <span class="id">Source</span><span class="op">.</span><span class="id">EmpSalary</span>
+<span class="kw">WHEN NOT MATCHED BY TARGET THEN</span>
+    <span class="kw">INSERT</span> (<span class="id">NationalId</span>, <span class="id">EmpName</span>, <span class="id">EmpPhoneNumber</span>, <span class="id">EmpSalary</span>)
+    <span class="kw">VALUES</span> (<span class="id">Source</span><span class="op">.</span><span class="id">NationalId</span>, <span class="id">Source</span><span class="op">.</span><span class="id">EmpName</span>,
+            <span class="id">Source</span><span class="op">.</span><span class="id">EmpPhoneNumber</span>, <span class="id">Source</span><span class="op">.</span><span class="id">EmpSalary</span>)
+<span class="kw">WHEN NOT MATCHED BY SOURCE THEN</span>
+    <span class="kw">DELETE</span><span class="op">;</span>
+
+<span class="cmt">-- Inspect before committing</span>
+<span class="kw">SELECT</span> <span class="op">*</span> <span class="kw">FROM</span> <span class="fn">Empolyes</span><span class="op">;</span>
+
+<span class="cmt">-- Rollback to undo — or COMMIT to save</span>
+<span class="kw">ROLLBACK</span><span class="op">;</span>   <span class="cmt">-- change to COMMIT when ready</span></pre>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top:1rem;border-color:rgba(251,191,36,.3)">
+                        <div class="card-ico ico-a">⚠️</div>
+                        <h3>Important Limitation</h3>
+                        <p>Each source row must match <strong>at most one</strong> target row. Duplicate NationalId
+                            values in the Source table will cause MERGE to fail or behave unexpectedly. Always ensure
+                            your join key is unique in the source.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="s-num">08 / 09</div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+     SLIDE 9 — CONCLUSION
+═══════════════════════════════════════════ -->
+    <section class="slide" id="s9">
+        <div class="wrap" style="position:relative;z-index:1">
+            <p class="eyebrow fadeup" style="justify-content:center">Conclusion</p>
+            <h2 class="fadeup" style="text-align:center">The Power of<br><span class="hi">One Statement.</span></h2>
+            <div class="divider fadeup" style="margin:0 auto 2rem"></div>
+
+            <p class="conclusion-q fadeup">
+                The <strong>MERGE statement</strong> in Microsoft SQL Server is a powerful, elegant solution for
+                <strong>synchronizing employee data</strong> — or any two tables — by combining
+                <strong>INSERT</strong>, <strong>UPDATE</strong>, and <strong>DELETE</strong> operations
+                into a <strong>single atomic SQL statement</strong>, matched on a reliable key like
+                <strong>NationalId</strong>.
+            </p>
+
+            <div class="final-row stag">
+                <div class="fp" style="color:var(--blue)">⚡ Atomic Operation</div>
+                <div class="fp" style="color:var(--green)">✓ Clean Code</div>
+                <div class="fp" style="color:var(--amber)">⟳ ETL Ready</div>
+                <div class="fp" style="color:var(--purple)">🔑 Key-based Matching</div>
+                <div class="fp" style="color:var(--red)">🛡️ Data Integrity</div>
+            </div>
+
+            <!-- final result recap -->
+            <div style="max-width:620px;margin:0 auto" class="fadeup">
+                <p
+                    style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--text2);margin-bottom:.65rem;text-align:left;letter-spacing:.05em">
+                    // FINAL STATE — Empolyes after MERGE</p>
+                <div class="tbl-wrap">
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>NationalId</th>
+                                <th>EmpName</th>
+                                <th>Phone</th>
+                                <th>Salary</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="row-upd">
+                                <td>1</td>
+                                <td>Ahmed Mohamed</td>
+                                <td>01011111111</td>
+                                <td>5,500.00</td>
+                                <td><span class="badge b-upd">UPDATED</span></td>
+                            </tr>
+                            <tr class="row-upd">
+                                <td>2</td>
+                                <td>Islam Mohamed</td>
+                                <td>01022222222</td>
+                                <td>6,500.00</td>
+                                <td><span class="badge b-upd">UPDATED</span></td>
+                            </tr>
+                            <tr class="row-ins">
+                                <td>4</td>
+                                <td>Asma Ahmed</td>
+                                <td>01033333333</td>
+                                <td>4,500.00</td>
+                                <td><span class="badge b-ins">INSERTED</span></td>
+                            </tr>
+                            <tr class="row-del">
+                                <td>3</td>
+                                <td>Mohamed Ahmed</td>
+                                <td>—</td>
+                                <td>—</td>
+                                <td><span class="badge b-del">DELETED</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="cards stag" style="margin-top:1.5rem">
+                    <div class="card" style="border-color:rgba(79,142,247,.28);text-align:center">
+                        <div class="card-ico ico-b" style="margin:0 auto 1rem">📚</div>
+                        <h3>Learn More</h3>
+                        <p>Explore Microsoft Docs for the full MERGE reference, OUTPUT clause, conditional WHEN filters,
+                            and performance tuning guides for large-scale syncs.</p>
+                    </div>
+                    <div class="card" style="border-color:rgba(52,211,153,.28);text-align:center">
+                        <div class="card-ico ico-g" style="margin:0 auto 1rem">🚀</div>
+                        <h3>Start Using MERGE</h3>
+                        <p>Replace your next multi-step sync script with a single MERGE statement. Your codebase — and
+                            your colleagues — will thank you.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="s-num">09 / 09</div>
+    </section>
+
+    <footer>
+        SQL Server MERGE Statement · Employee Data Synchronization Example · Built with HTML, CSS &amp; JavaScript
+    </footer>
+
+    <!-- ═══════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════ -->
+    <script>
+        /* theme */
+        const html = document.documentElement;
+        const btn = document.getElementById('themeBtn');
+        const saved = localStorage.getItem('sql-theme') || 'dark';
+        html.setAttribute('data-theme', saved);
+
+        btn.addEventListener('click', () => {
+            const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('sql-theme', next);
+        });
+
+        /* progress bar */
+        const fill = document.getElementById('progFill');
+        window.addEventListener('scroll', () => {
+            const top = window.scrollY;
+            const h = document.documentElement.scrollHeight - window.innerHeight;
+            fill.style.width = (h > 0 ? (top / h) * 100 : 0) + '%';
+        }, { passive: true });
+
+        /* intersection observer — animations */
+        const io = new IntersectionObserver(entries => {
+            entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('on') });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.fadeup, .stag').forEach(el => io.observe(el));
+
+        /* active nav link */
+        const slides = document.querySelectorAll('.slide');
+        const links = document.querySelectorAll('.nav-pills a');
+        const navIo = new IntersectionObserver(entries => {
+            entries.forEach(e => {
+                if (e.isIntersecting) {
+                    links.forEach(a => { a.classList.remove('active') });
+                    const a = document.querySelector(`.nav-pills a[href="#${e.target.id}"]`);
+                    if (a) a.classList.add('active');
+                }
+            });
+        }, { threshold: 0.45 });
+        slides.forEach(s => navIo.observe(s));
+    </script>
+</body>
+
+</html>
